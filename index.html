@@ -142,7 +142,6 @@
                     const biologyCard = { label: 'Биология', ...bioData };
                     const factCard = { label: 'Факт', ...getUnique(this.db.facts, usedF), _isSecret: true };
 
-                    // Набор карт для сортировки от лучших к худшим (Биология, Здоровье, Хобби, Багаж)
                     let sortableCards = [
                         biologyCard,
                         { label: 'Здоровье', ...getUnique(this.db.health, usedH) },
@@ -150,13 +149,8 @@
                         { label: 'Багаж', ...getUnique(this.db.baggage, usedB) }
                     ];
 
-                    // Сортируем от лучших к худшим по сумме характеристик (по убыванию)
                     sortableCards.sort((a, b) => this.getCardValue(b) - this.getCardValue(a));
 
-                    // Итоговый порядок:
-                    // Индекс 0: Профессия (всегда 1-й раунд)
-                    // Индексы 1, 2, 3, 4: Сортированные карты от лучшей к худшей (включая биологию)
-                    // Индекс 5: Факт (секретный)
                     let myCards = [
                         professionCard,
                         ...sortableCards,
@@ -228,7 +222,7 @@
                 return `
                 <div class="flex-grow flex flex-col items-center justify-center text-center px-4">
                     <h2 class="text-4xl md:text-6xl font-bold uppercase mb-2 text-white tracking-wider">Комитет <span class="text-bunker-accent">Спасения</span></h2>
-                    <p class="text-gray-400 mb-8 max-w-xl text-sm md:text-base">1 раунд — профессия (имена скрыты). Со 2 по 5 раунды характеристики вскрываются от лучших к худшим. Имя открывается в момент вскрытия биологии. Факт остается секретным.</p>
+                    <p class="text-gray-400 mb-8 max-w-xl text-sm md:text-base">1 раунд — профессия (имена скрыты). Со 2 по 5 раунды характеристики вскрываются от лучших к худшим. Числовые статы видны только после изгнания или на финальном экране.</p>
                     <button onclick="game.start()" class="bg-bunker-accent text-bunker-900 font-bold text-xl px-10 py-3 rounded shadow hover:bg-yellow-400 transition transform hover:scale-105">Начать игру</button>
                 </div>`;
             },
@@ -256,7 +250,6 @@
                 st.candidates.forEach((c, idx) => {
                     const isE = c.eliminated;
                     
-                    // Имя открывается только тогда, когда у кандидата вскрыта карта "Биология"
                     let isBioVisible = false;
                     c.cards.forEach((card, index) => {
                         let isCardOpen = isE || (!card._isSecret && index < st.round);
@@ -281,12 +274,14 @@
                             }
                         }
                         
-                        let statsStr = ` [eng:${card.stats.eng}, med:${card.stats.med}, prov:${card.stats.prov}, psy:${card.stats.psy}]`;
+                        // Статы отображаются только если кандидат изгнан
+                        let statsStr = isE ? ` <span class="text-[9px] text-gray-400 font-normal">(${card.stats.eng},${card.stats.med},${card.stats.prov},${card.stats.psy})</span>` : '';
+                        
                         html += `
                             <div class="flex flex-col justify-center my-0.5">
                                 <span class="text-[8px] md:text-[9px] text-gray-500 uppercase tracking-widest leading-none mb-[2px]">${card.label}</span>
                                 ${isVisible 
-                                    ? `<div class="font-bold text-gray-200 text-[10px] md:text-[11px] truncate leading-tight" title="${card.name}${statsStr}">${card.name} <span class="text-[9px] text-gray-400 font-normal">(${card.stats.eng},${card.stats.med},${card.stats.prov},${card.stats.psy})</span></div>` 
+                                    ? `<div class="font-bold text-gray-200 text-[10px] md:text-[11px] truncate leading-tight" title="${card.name}">${card.name}${statsStr}</div>` 
                                     : `<div class="hidden-trait h-3.5 md:h-4 w-full rounded"></div>`
                                 }
                             </div>`;
