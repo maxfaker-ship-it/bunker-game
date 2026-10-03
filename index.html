@@ -102,19 +102,7 @@
                     this.db.hobby = hobby;
                     this.db.baggage = baggage;
                     this.db.facts = facts;
-                    
-                    // Генерация биологии программным путем (Пол + Возраст + Телосложение)
-                    this.db.biology = [];
-                    biology.genders.forEach(g => {
-                        biology.bodies.forEach(b => {
-                            for(let age = 18; age <= 65; age += 2) {
-                                let s = { ...b.s };
-                                if (age < 30) { s.psy += 1; s.med -= 1; }
-                                else if (age > 45) { s.psy -= 1; s.med += 1; }
-                                this.db.biology.push({ gender: g, name: `${g}, ${age} лет, ${b.n} телосложение`, stats: s });
-                            }
-                        });
-                    });
+                    this.db.biology = biology;
 
                     document.getElementById('loader').innerHTML = '<span class="text-green-400">Базы загружены</span>';
                     ui.render();
