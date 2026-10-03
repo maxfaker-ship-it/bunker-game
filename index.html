@@ -140,21 +140,17 @@
                     
                     const professionCard = { label: 'Профессия', ...getUnique(this.db.professions, usedP) };
                     const biologyCard = { label: 'Биология', ...bioData };
-                    const factCard = { label: 'Факт', ...getUnique(this.db.facts, usedF), _isSecret: true };
+                    const healthCard = { label: 'Здоровье', ...getUnique(this.db.health, usedH) };
+                    const hobbyCard = { label: 'Хобби', ...getUnique(this.db.hobby, usedHob) };
+                    const baggageCard = { label: 'Багаж', ...getUnique(this.db.baggage, usedB) };
+                    const factCard = { label: 'Факт', ...getUnique(this.db.facts, usedF) };
 
-                    let sortableCards = [
-                        biologyCard,
-                        { label: 'Здоровье', ...getUnique(this.db.health, usedH) },
-                        { label: 'Хобби', ...getUnique(this.db.hobby, usedHob) },
-                        { label: 'Багаж', ...getUnique(this.db.baggage, usedB) }
-                    ];
-
+                    let sortableCards = [biologyCard, healthCard, hobbyCard, baggageCard, factCard];
                     sortableCards.sort((a, b) => this.getCardValue(b) - this.getCardValue(a));
 
                     let myCards = [
                         professionCard,
-                        ...sortableCards,
-                        factCard
+                        ...sortableCards
                     ];
                     
                     this.state.candidates.push({
@@ -222,7 +218,7 @@
                 return `
                 <div class="flex-grow flex flex-col items-center justify-center text-center px-4">
                     <h2 class="text-4xl md:text-6xl font-bold uppercase mb-2 text-white tracking-wider">Комитет <span class="text-bunker-accent">Спасения</span></h2>
-                    <p class="text-gray-400 mb-8 max-w-xl text-sm md:text-base">1 раунд — профессия (имена скрыты). Со 2 по 5 раунды характеристики вскрываются от лучших к худшим. Числовые статы видны только после изгнания или на финальном экране.</p>
+                    <p class="text-gray-400 mb-8 max-w-xl text-sm md:text-base">1 раунд — профессия (имена скрыты). Со 2 по 5 раунды характеристики вскрываются от лучших к худшим. Статы видны после изгнания или на финише.</p>
                     <button onclick="game.start()" class="bg-bunker-accent text-bunker-900 font-bold text-xl px-10 py-3 rounded shadow hover:bg-yellow-400 transition transform hover:scale-105">Начать игру</button>
                 </div>`;
             },
@@ -252,7 +248,7 @@
                     
                     let isBioVisible = false;
                     c.cards.forEach((card, index) => {
-                        let isCardOpen = isE || (!card._isSecret && index < st.round);
+                        let isCardOpen = isE || (index < st.round && index < 5);
                         if (card.label === 'Биология' && isCardOpen) {
                             isBioVisible = true;
                         }
@@ -269,12 +265,11 @@
                     c.cards.forEach((card, index) => {
                         let isVisible = isE || false;
                         if (!isE) {
-                            if (!card._isSecret) {
-                                if (index < st.round) isVisible = true;
+                            if (index < st.round && index < 5) {
+                                isVisible = true;
                             }
                         }
                         
-                        // Статы отображаются только если кандидат изгнан
                         let statsStr = isE ? ` <span class="text-[9px] text-gray-400 font-normal">(${card.stats.eng},${card.stats.med},${card.stats.prov},${card.stats.psy})</span>` : '';
                         
                         html += `
@@ -309,20 +304,37 @@
                         <span class="font-bold ${data.pass ? 'text-green-400' : 'text-red-400'}">${data.val} / ${data.req}</span>
                     </div>`;
 
-                const renderCandidateCard = (c, isOut = false) => `
-                    <div class="bg-bunker-900 p-2 rounded border ${isOut ? 'border-red-900/50 opacity-75' : 'border-bunker-700'} text-xs">
-                        <div class="font-bold text-white mb-1 border-b border-bunker-800 pb-1 flex justify-between">
-                            <span>${c.fullName}</span>
-                            <span class="${isOut ? 'text-red-400' : 'text-green-400'}">${isOut ? 'Изгнан' : 'В бункере'}</span>
+                const renderCandidateCard = (c, isOut = false) => {
+                    let totalEng = 0, totalMed = 0, totalProv = 0, totalPsy = 0;
+                    c.cards.forEach(card => {
+                        totalEng += card.stats.eng || 0;
+                        totalMed += card.stats.med || 0;
+                        totalProv += card.stats.prov || 0;
+                        totalPsy += card.stats.psy || 0;
+                    });
+                    const grandTotal = totalEng + totalMed + totalProv + totalPsy;
+
+                    return `
+                    <div class="bg-bunker-900 p-2.5 rounded border ${isOut ? 'border-red-900/50 opacity-80' : 'border-bunker-700'} text-xs flex flex-col justify-between">
+                        <div>
+                            <div class="font-bold text-white mb-1.5 border-b border-bunker-800 pb-1 flex justify-between items-center">
+                                <span class="truncate" title="${c.fullName}">${c.fullName}</span>
+                                <span class="text-[10px] px-1.5 py-0.5 rounded ${isOut ? 'bg-red-900/40 text-red-300' : 'bg-green-900/40 text-green-300'}">${isOut ? 'Изгнан' : 'В бункере'}</span>
+                            </div>
+                            <div class="space-y-1 text-[11px] text-gray-300 mb-2">
+                                ${c.cards.map(card => `<div><span class="text-gray-500">${card.label}:</span>${card.name} <span class="text-gray-400 text-[10px]">(${card.stats.eng},${card.stats.med},${card.stats.prov},${card.stats.psy})</span></div>`).join('')}
+                            </div>
                         </div>
-                        <div class="space-y-0.5 text-[11px] text-gray-300">
-                            ${c.cards.map(card => `<div><span class="text-gray-500">${card.label}:</span>${card.name} <span class="text-gray-400 text-[10px]">(${card.stats.eng},${card.stats.med},${card.stats.prov},${card.stats.psy})</span></div>`).join('')}
+                        <div class="border-t border-bunker-800 pt-1.5 text-[10px] text-gray-400">
+                            <div class="flex justify-between"><span>Eng: ${totalEng} | Med: ${totalMed}</span><span>Prov: ${totalProv} | Psy: ${totalPsy}</span></div>
+                            <div class="text-center font-bold text-bunker-accent mt-0.5">Итого суммарно: ${grandTotal}</div>
                         </div>
                     </div>`;
+                };
 
                 return `
                 <div class="flex-grow flex flex-col items-center justify-center overflow-y-auto py-4 px-2">
-                    <div class="w-full max-w-4xl bg-bunker-800 p-6 rounded-lg border border-bunker-700 shadow-xl">
+                    <div class="w-full max-w-5xl bg-bunker-800 p-6 rounded-lg border border-bunker-700 shadow-xl">
                         <h2 class="text-3xl font-black text-center mb-1 ${sim.win ? 'text-green-500' : 'text-red-500'} uppercase tracking-widest">
                             ${sim.win ? 'Бункер выжил' : 'Бункер пал'}
                         </h2>
@@ -330,7 +342,7 @@
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                             <div class="bg-bunker-900/50 p-3 rounded border border-bunker-700">
-                                <h3 class="text-xs font-bold text-bunker-accent mb-2 uppercase tracking-wider">Итоги характеристик бункера</h3>
+                                <h3 class="text-xs font-bold text-bunker-accent mb-2 uppercase tracking-wider">Сравнение группы и требований катастрофы</h3>
                                 ${renderStat('Инженерия', sim.results.eng)}
                                 ${renderStat('Медицина', sim.results.med)}
                                 ${renderStat('Провизия', sim.results.prov)}
@@ -347,17 +359,15 @@
                             </div>
                         </div>
 
-                        <h3 class="text-xs font-bold text-bunker-accent mb-2 uppercase tracking-wider">Состав выживших в бункере (5 человек):</h3>
+                        <h3 class="text-xs font-bold text-green-400 mb-2 uppercase tracking-wider">Попавшие в бункер (выжившие):</h3>
                         <div class="grid grid-cols-1 md:grid-cols-5 gap-2 mb-4">
                             ${survivors.map(c => renderCandidateCard(c, false)).join('')}
                         </div>
 
-                        ${eliminated.length > 0 ? `
-                            <h3 class="text-xs font-bold text-red-400 mb-2 uppercase tracking-wider">Изгнанные ранее персонажи:</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-5 gap-2 mb-6">
-                                ${eliminated.map(c => renderCandidateCard(c, true)).join('')}
-                            </div>
-                        ` : ''}
+                        <h3 class="text-xs font-bold text-red-400 mb-2 uppercase tracking-wider">Не попавшие в бункер (изгнанные):</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-5 gap-2 mb-6">
+                            ${eliminated.map(c => renderCandidateCard(c, true)).join('')}
+                        </div>
 
                         <div class="text-center">
                             <button onclick="game.state.view='menu'; ui.render();" class="bg-bunker-700 hover:bg-gray-600 px-6 py-2 rounded text-white font-bold text-xs transition">В главное меню</button>
